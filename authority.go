@@ -14,6 +14,7 @@ type Authority struct {
 // Options has the options for initiating the package
 type Options struct {
 	TablesPrefix string
+	IDColumnType string
 	DB           *gorm.DB
 }
 
@@ -26,12 +27,19 @@ var (
 )
 
 var tablePrefix string
+var idColumnType string
 
 var auth *Authority
 
 // New initiates authority
 func New(opts Options) *Authority {
 	tablePrefix = opts.TablesPrefix
+	// Default to the previous behaviour of bigint
+	if opts.IDColumnType == "" {
+		idColumnType = "bigint"
+	} else {
+		idColumnType = opts.IDColumnType
+	}
 	auth = &Authority{
 		DB: opts.DB,
 	}
@@ -133,7 +141,7 @@ func (a *Authority) AssignPermissions(roleName string, permNames []string) error
 // the first parameter is the user id, the second parameter is the role name
 // if the role name doesn't have a matching record in the data base an error is returned
 // if the user have already a role assigned to him an error is returned
-func (a *Authority) AssignRole(userID uint, roleName string) error {
+func (a *Authority) AssignRole(userID UserIDColumn, roleName string) error {
 	// make sure the role exist
 	var role Role
 	res := a.DB.Where("name = ?", roleName).First(&role)
@@ -161,7 +169,7 @@ func (a *Authority) AssignRole(userID uint, roleName string) error {
 // it accepts the user id as the first parameter
 // the role as the second parameter
 // it returns an error if the role is not present in database
-func (a *Authority) CheckRole(userID uint, roleName string) (bool, error) {
+func (a *Authority) CheckRole(userID UserIDColumn, roleName string) (bool, error) {
 	// find the role
 	var role Role
 	res := a.DB.Where("name = ?", roleName).First(&role)
@@ -189,7 +197,7 @@ func (a *Authority) CheckRole(userID uint, roleName string) (bool, error) {
 // it accepts the user id as the first parameter
 // the permission as the second parameter
 // it returns an error if the permission is not present in the database
-func (a *Authority) CheckPermission(userID uint, permName string) (bool, error) {
+func (a *Authority) CheckPermission(userID UserIDColumn, permName string) (bool, error) {
 	// the user role
 	var userRoles []UserRole
 	res := a.DB.Where("user_id = ?", userID).Find(&userRoles)
@@ -266,7 +274,7 @@ func (a *Authority) CheckRolePermission(roleName string, permName string) (bool,
 
 // RevokeRole revokes a user's role
 // it returns a error in case of any
-func (a *Authority) RevokeRole(userID uint, roleName string) error {
+func (a *Authority) RevokeRole(userID UserIDColumn, roleName string) error {
 	// find the role
 	var role Role
 	res := a.DB.Where("name = ?", roleName).First(&role)
@@ -285,7 +293,7 @@ func (a *Authority) RevokeRole(userID uint, roleName string) error {
 
 // RevokePermission revokes a permission from the user's assigned role
 // it returns an error in case of any
-func (a *Authority) RevokePermission(userID uint, permName string) error {
+func (a *Authority) RevokePermission(userID UserIDColumn, permName string) error {
 	// revoke the permission from all roles of the user
 	// find the user roles
 	var userRoles []UserRole
@@ -358,7 +366,7 @@ func (a *Authority) GetRoles() ([]string, error) {
 }
 
 // GetUserRoles returns all user assigned roles
-func (a *Authority) GetUserRoles(userID uint) ([]string, error) {
+func (a *Authority) GetUserRoles(userID UserIDColumn) ([]string, error) {
 	var result []string
 	var userRoles []UserRole
 	a.DB.Where("user_id = ?", userID).Find(&userRoles)

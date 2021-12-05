@@ -2,9 +2,9 @@ package authority
 
 // UserRole represents the relationship between users and roles
 type UserRole struct {
-	ID     uint
-	UserID uint
-	RoleID uint
+	ID     uint         `gorm:"AUTO_INCREMENT;primaryKey;column:id"`
+	UserID UserIDColumn `gorm:"column:user_id;unique_index:idx_user_role"`
+	RoleID uint         `gorm:"column:role_id;unique_index:idx_user_role"`
 }
 
 // TableName sets the table name
